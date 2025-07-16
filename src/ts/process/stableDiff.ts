@@ -416,8 +416,8 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
             console.log(url)
             const response = await globalFetch(url, options)
             if (!response.ok) {
-                console.log(JSON.stringify(response.data))
-                throw new Error(JSON.stringify(response.data))
+                alertError(JSON.stringify(response.data))
+                return false
             }
             return response.data
         }
@@ -461,10 +461,10 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
 
             const startTime = Date.now()
             const timeout = db.comfyConfig.timeout * 1000
-            while (!(item = (await (await fetchNative(createUrl('/history'), {
+            while (!(item = (await fetchWrapper(createUrl('/history'), {
                 headers: { 'Content-Type': 'application/json' },
                 method: 'GET'
-            })).json())[id])) {
+            }))[id])) {
                 console.log("Checking /history...")
                 if (Date.now() - startTime >= timeout) {
                     alertError("Error: Image generation took longer than expected.");
@@ -472,7 +472,7 @@ export async function generateAIImage(genPrompt:string, currentChar:character, n
                 }
                 await new Promise(r => setTimeout(r, 1000))
             } // Check history until the generation is complete.
-            const genImgInfo = Object.values(item.outputs).flatMap((output: any) => output.images)[0];
+            const genImgInfo = Object.values(item.outputs).flatMap((output: any) => output.images || [])[0];
 
             const imgResponse = await fetchNative(createUrl('/view', {
                 filename: genImgInfo.filename,
